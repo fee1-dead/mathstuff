@@ -2,7 +2,7 @@
 
 use constant::Constant;
 
-use num::BigInt;
+
 use simplify::SimpleExpr;
 
 mod cmp;

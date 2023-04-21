@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
 use crate::constant::Constant;
-use crate::rational_expressions::RationalExpr;
+
 use crate::{BasicAlgebraicExpr, ComputeResult, SimpleExpr, Undefined};
-use num::{BigInt, One, Signed, Zero};
+use num::{One, Zero};
 use smallvec::{smallvec, SmallVec};
 use tracing::debug;
 

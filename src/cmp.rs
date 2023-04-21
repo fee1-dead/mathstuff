@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::slice;
 
-use crate::simplify::SimpleExpr;
+
 use crate::BasicAlgebraicExpr;
 
 impl PartialOrd for BasicAlgebraicExpr {

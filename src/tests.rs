@@ -156,25 +156,14 @@ fn n(a: i128) -> BasicAlgebraicExpr {
     a.into()
 }
 
-fn sn(a: i128) -> SimpleExpr {
-    a.into()
-}
-
 fn s(a: &str) -> BasicAlgebraicExpr {
     BasicAlgebraicExpr::Symbol(a.into())
-}
-
-fn ss(a: &str) -> SimpleExpr {
-    SimpleExpr::new_symbol(a.into())
 }
 
 fn opaque() -> BasicAlgebraicExpr {
     s("opaque")
 }
 
-fn sopaque() -> SimpleExpr {
-    ss("opaque")
-}
 
 fn simplify(a: BasicAlgebraicExpr) -> SimpleExpr {
     a.simplify().unwrap()

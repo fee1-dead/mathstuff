@@ -1,14 +1,16 @@
 use std::error::Error;
 use std::fs::File;
-use std::{io, fs};
 use std::path::Path;
+use std::{fs, io};
 
 use comemo::Prehashed;
-use typst::diag::{FileResult, FileError};
+use mathstuff::parse::parse_into_expression;
+use mathstuff::print::print_expr_to_string;
+use typst::diag::{FileError, FileResult};
 use typst::eval::Library;
-use typst::font::{FontBook, Font};
-use typst::geom::Color;
-use typst::syntax::{SourceId, Source};
+use typst::font::{Font, FontBook};
+use typst::geom::{Color, RgbaColor};
+use typst::syntax::{Source, SourceId};
 use typst::util::Buffer;
 
 pub struct MyWorld {
@@ -19,17 +21,17 @@ pub struct MyWorld {
 }
 
 impl MyWorld {
-    pub fn new(src: String)  -> io::Result<Self> {
+    pub fn new(src: String) -> io::Result<Self> {
         //let fonts_list = Command::new("fc-list").arg("-f").arg("%{file}\n").output()?;
         //let s = String::from_utf8_lossy(&fonts_list.stdout);
-        let s = "/nix/store/ad3l14p8hmq980blhb7a6fqbd9gsic78-dejavu-fonts-2.37/share/fonts/truetype/DejaVuMathTeXGyre.ttf";
-        let fonts = s.lines().flat_map(|x| {
-            fs::read(x).map(|data| Font::iter(data.into())).ok()
-        }).flatten().collect::<Vec<_>>();
+        let s = "./font/NewCMMath-Regular.otf";
+        let fonts = s
+            .lines()
+            .flat_map(|x| fs::read(x).map(|data| Font::iter(data.into())).ok())
+            .flatten()
+            .collect::<Vec<_>>();
 
         dbg!(&fonts);
-
-        println!("{:?}", fonts[0].ttf().tables().math);
 
         let book = FontBook::from_fonts(fonts.iter());
         Ok(Self {
@@ -39,10 +41,14 @@ impl MyWorld {
             main: Source::new(SourceId::from_u16(0), Path::new("input"), src),
         })
     }
+
+    pub fn set_source(&mut self, src: String) {
+        self.main = Source::new(SourceId::from_u16(0), Path::new("input"), src);
+    }
 }
 
 impl typst::World for MyWorld {
-    fn library(&self) ->  &Prehashed<Library> {
+    fn library(&self) -> &Prehashed<Library> {
         &self.library
     }
 
@@ -50,7 +56,7 @@ impl typst::World for MyWorld {
         self.fonts.get(id).cloned()
     }
 
-    fn book(&self) ->  &Prehashed<typst::font::FontBook> {
+    fn book(&self) -> &Prehashed<typst::font::FontBook> {
         &self.book
     }
 
@@ -73,20 +79,29 @@ impl typst::World for MyWorld {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let world = MyWorld::new(r#"
-        #show math.equation: set text(font: "DejaVu Math TeX Gyre")
-        $a^2 + b^2 = c^2$
-    "#.into())?;
+    let eq = parse_into_expression(&fs::read_to_string("./test.txt")?).unwrap();
+    let str = print_expr_to_string(&eq);
+    let world = MyWorld::new(format!(
+        r#"
+        #set page(width: auto, height: auto, margin: 5pt)
+        #show math.equation: set text(font: "New Computer Modern Math")
+        ${str}$
+    "#
+    ))?;
     println!("debug uwu");
     let input = typst::compile(&world).unwrap();
-    let pixmap = typst::export::render(&input.pages[0], 5.0, Color::WHITE);
+    let pixmap = typst::export::render(
+        &input.pages[0],
+        10.0,
+        Color::Rgba(RgbaColor::new(255, 255, 255, 255)),
+    );
     image::write_buffer_with_format(
         &mut File::create("./out.png")?,
         bytemuck::cast_slice(pixmap.pixels()),
         pixmap.width(),
         pixmap.height(),
         image::ColorType::Rgba8,
-        image::ImageFormat::Png
+        image::ImageFormat::Png,
     )?;
     Ok(())
 }

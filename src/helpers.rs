@@ -6,18 +6,30 @@ use crate::rational_expressions::SimplifiedRationalExpression;
 use crate::simplify::SimpleExpr;
 use crate::{BasicAlgebraicExpr, ComputeResult, Undefined};
 
+impl PartialEq<BasicAlgebraicExpr> for i64 {
+    fn eq(&self, other: &BasicAlgebraicExpr) -> bool {
+        match other {
+            BasicAlgebraicExpr::Numeric(x) => &**x == &BigRational::from_integer((*self).into()),
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<i64> for BasicAlgebraicExpr {
+    fn eq(&self, other: &i64) -> bool {
+        other.eq(self)
+    }
+}
+
 impl PartialEq<SimpleExpr> for i64 {
     fn eq(&self, other: &SimpleExpr) -> bool {
-        other.eq(self)
+        self == other.as_inner()
     }
 }
 
 impl PartialEq<i64> for SimpleExpr {
     fn eq(&self, other: &i64) -> bool {
-        match self.as_inner() {
-            BasicAlgebraicExpr::Numeric(x) => &**x == &BigRational::from_integer((*other).into()),
-            _ => false,
-        }
+        self.as_inner() == other
     }
 }
 

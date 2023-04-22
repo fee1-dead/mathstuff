@@ -1,3 +1,4 @@
+use std::fmt::{Display, Write};
 // a high precedence means that it will be evaluated before lower precedences,
 // and thus parsed before other operation types as well.
 //
@@ -30,6 +31,32 @@ pub enum Token {
     Pow,
     Factorial,
     Comma,
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let ch = match self {
+            Token::LeftBr => '[',
+            Token::RightBr => ']',
+            Token::LeftParen => '(',
+            Token::RightParen => ')',
+            Token::Add => '+',
+            Token::Sub => '-',
+            Token::Div => '/',
+            Token::Mul => '*',
+            Token::Pow => '^',
+            Token::Factorial => '!',
+            Token::Comma => ',',
+            Token::Number(n) => {
+                return write!(f, "{n}");
+            }
+            Token::Symbol(s) => {
+                return f.write_str(s);
+            }
+        };
+
+        f.write_char(ch)
+    }
 }
 
 pub struct Tokenizer<'a> {

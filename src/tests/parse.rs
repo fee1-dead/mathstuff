@@ -1,4 +1,9 @@
-use crate::parse::{Token, Tokenizer};
+use crate::parse::{parse_into_expression, Token, Tokenizer};
+use crate::BasicAlgebraicExpr;
+
+fn int_expr(x: i128) -> BasicAlgebraicExpr {
+    BasicAlgebraicExpr::Numeric(x.into())
+}
 
 #[test]
 pub fn tokenize() {
@@ -10,7 +15,7 @@ pub fn tokenize() {
             Token::Add,
             Token::Number(3.into()),
             Token::Mul,
-            Token::Number(4.into())
+            Token::Number(4.into()),
         ]
     );
 
@@ -24,7 +29,7 @@ pub fn tokenize() {
             Token::Number(3.into()),
             Token::RightParen,
             Token::Mul,
-            Token::Number(4.into())
+            Token::Number(4.into()),
         ]
     );
 
@@ -45,7 +50,28 @@ pub fn tokenize() {
             Token::Number(4.into()),
             Token::Add,
             Token::Number(5.into()),
-            Token::RightParen
+            Token::RightParen,
         ]
+    );
+}
+
+#[test]
+pub fn parse() {
+    let x = parse_into_expression("2 + 3 * 4").unwrap();
+    assert_eq!(
+        BasicAlgebraicExpr::Sum(vec![
+            int_expr(2),
+            BasicAlgebraicExpr::Product(vec![int_expr(3), int_expr(4)])
+        ]),
+        x
+    );
+
+    let x = parse_into_expression("(2 + 3) * 4").unwrap();
+    assert_eq!(
+        BasicAlgebraicExpr::Product(vec![
+            BasicAlgebraicExpr::Sum(vec![int_expr(2), int_expr(3)]),
+            int_expr(4),
+        ]),
+        x
     );
 }

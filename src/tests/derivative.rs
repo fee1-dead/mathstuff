@@ -1,11 +1,11 @@
 use crate::diff::Differentiator;
-use crate::tests::{init, x};
+use crate::tests::x;
 
 use super::sx;
 
 #[test]
 pub fn simple_power_rule() {
-    init();
+    // init();
 
     let one = Differentiator::new()
         .differentiate(sx.simplify(), "x")

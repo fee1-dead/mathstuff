@@ -1,7 +1,6 @@
 use std::cmp::Ordering;
 use std::slice;
 
-
 use crate::BasicAlgebraicExpr;
 
 impl PartialOrd for BasicAlgebraicExpr {

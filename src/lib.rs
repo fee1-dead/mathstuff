@@ -2,7 +2,6 @@
 
 use constant::Constant;
 
-
 use simplify::SimpleExpr;
 
 mod cmp;
@@ -25,6 +24,11 @@ pub struct Undefined;
 
 pub type ComputeResult<T = SimpleExpr> = Result<T, Undefined>;
 
+/// Precedence (highest to lowest):
+/// 1. Function/Factorial
+/// 2. Exponentiation
+/// 3. Product
+/// 4. Sum
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub enum BasicAlgebraicExpr {
     Numeric(Constant),
@@ -35,6 +39,34 @@ pub enum BasicAlgebraicExpr {
     Pow(Box<(BasicAlgebraicExpr, BasicAlgebraicExpr)>),
     Factorial(Box<BasicAlgebraicExpr>),
     Function(String, Vec<BasicAlgebraicExpr>),
+}
+
+impl BasicAlgebraicExpr {
+    pub fn precedence_ctxt(&self) -> PrecedenceContext {
+        use PrecedenceContext::*;
+        match self {
+            Self::Numeric(_) | Self::Symbol(_) => NoPrecedence,
+            Self::Product(_) => Product,
+            Self::Sum(_) => Sum,
+            Self::Pow(_) => Pow,
+            Self::Factorial(_) | Self::Function(_, _) => FunctionOrFactorial,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PrecedenceContext {
+    /// Has no precedence. (wrapped in parens or function args)
+    NoPrecedence,
+    /// Sum context, currently equivalent to `NoPrecedence`
+    Sum,
+    /// Product context. Sums must be wrapped in parens
+    Product,
+    /// Exponentiation
+    Pow,
+    /// These operations are performed to their immediate left, so if their left
+    /// is a compound expression we certainly want to wrap them in parenthesis.
+    FunctionOrFactorial,
 }
 
 pub fn parse_and_simplify(x: &str) -> Result<ComputeResult, chumsky::error::Simple<parse::Token>> {

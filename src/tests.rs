@@ -53,10 +53,13 @@ macro_rules! impl_op {
             fn $fn_name(self, rhs: i128) -> Self::Output {
                 match self {
                     TestExpr::LazySym(st, is_simple) => {
-                        mk_expr(is_simple)(BasicAlgebraicExpr::$variant(vec![ s(st), n(rhs) ]))
+                        mk_expr(is_simple)(BasicAlgebraicExpr::$variant(vec![s(st), n(rhs)]))
                     }
                     TestExpr::Simplified(s) => {
-                        TestExpr::mk_simple(BasicAlgebraicExpr::$variant(vec![ s.into_inner(), n(rhs)]))
+                        TestExpr::mk_simple(BasicAlgebraicExpr::$variant(vec![
+                            s.into_inner(),
+                            n(rhs),
+                        ]))
                     }
                     TestExpr::Basic(b) => {
                         TestExpr::Basic(BasicAlgebraicExpr::$variant(vec![b, n(rhs)]))
@@ -70,10 +73,13 @@ macro_rules! impl_op {
             fn $fn_name(self, rhs: TestExpr) -> Self::Output {
                 match rhs {
                     TestExpr::LazySym(st, is_simple) => {
-                        mk_expr(is_simple)(BasicAlgebraicExpr::$variant(vec![ n(self), s(st) ]))
+                        mk_expr(is_simple)(BasicAlgebraicExpr::$variant(vec![n(self), s(st)]))
                     }
                     TestExpr::Simplified(s) => {
-                        TestExpr::mk_simple(BasicAlgebraicExpr::$variant(vec![ n(self), s.into_inner() ]))
+                        TestExpr::mk_simple(BasicAlgebraicExpr::$variant(vec![
+                            n(self),
+                            s.into_inner(),
+                        ]))
                     }
                     TestExpr::Basic(b) => {
                         TestExpr::Basic(BasicAlgebraicExpr::$variant(vec![n(self), b]))
@@ -89,7 +95,9 @@ macro_rules! impl_op {
                 match (self, rhs) {
                     (TestExpr::LazySym(st, is_simple), TestExpr::LazySym(st2, is_simple2)) => {
                         if is_simple != is_simple2 {
-                            panic!("Cannot add two lazy symbols with different simplification status");
+                            panic!(
+                                "Cannot add two lazy symbols with different simplification status"
+                            );
                         }
                         if is_simple || is_simple2 {
                             TestExpr::mk_simple(BasicAlgebraicExpr::$variant(vec![s(st), s(st2)]))
@@ -100,9 +108,14 @@ macro_rules! impl_op {
                     (TestExpr::LazySym(st, is_simple), TestExpr::Simplified(simplified))
                     | (TestExpr::Simplified(simplified), TestExpr::LazySym(st, is_simple)) => {
                         if is_simple {
-                            TestExpr::mk_simple(BasicAlgebraicExpr::$variant(vec![s(st), simplified.into_inner()]))
+                            TestExpr::mk_simple(BasicAlgebraicExpr::$variant(vec![
+                                s(st),
+                                simplified.into_inner(),
+                            ]))
                         } else {
-                            panic!("lazy_sym {{ is_simple: true }} can only add with simplified exprs");
+                            panic!(
+                                "lazy_sym {{ is_simple: true }} can only add with simplified exprs"
+                            );
                         }
                     }
                     (TestExpr::LazySym(st, is_simple), TestExpr::Basic(b))
@@ -114,7 +127,10 @@ macro_rules! impl_op {
                         }
                     }
                     (TestExpr::Simplified(s), TestExpr::Simplified(s2)) => {
-                        TestExpr::mk_simple(BasicAlgebraicExpr::$variant(vec![s.into_inner(), s2.into_inner()]))
+                        TestExpr::mk_simple(BasicAlgebraicExpr::$variant(vec![
+                            s.into_inner(),
+                            s2.into_inner(),
+                        ]))
                     }
                     (TestExpr::Basic(b), TestExpr::Basic(b2)) => TestExpr::Basic(b.$fn_name(b2)),
                     _ => panic!("Cannot perform op different types of expressions"),
@@ -139,7 +155,8 @@ const sx: TestExpr = TestExpr::LazySym("x", true);
 #[allow(non_upper_case_globals)]
 const sy: TestExpr = TestExpr::LazySym("y", true);
 
-fn init() {
+#[allow(dead_code)]
+pub fn init_logging() {
     let layer = tracing_tree::HierarchicalLayer::default()
         .with_indent_lines(true)
         .with_targets(true)
@@ -163,7 +180,6 @@ fn s(a: &str) -> BasicAlgebraicExpr {
 fn opaque() -> BasicAlgebraicExpr {
     s("opaque")
 }
-
 
 fn simplify(a: BasicAlgebraicExpr) -> SimpleExpr {
     a.simplify().unwrap()
@@ -194,7 +210,6 @@ macro_rules! assert_simplified_eq {
 
 #[test]
 pub fn simplify_addition() {
-    init();
     assert_simplified_eq!(3 * sx, x + 2 * x);
     assert_simplified_eq!(6 * sx, x + 2 * x + 3 * x);
 }

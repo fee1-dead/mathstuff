@@ -8,7 +8,7 @@ use tracing::debug;
 use crate::constant::Constant;
 use crate::simplify::ops::{self, Operation};
 use crate::simplify::{simplify_power, SimpleExpr};
-use crate::{BasicAlgebraicExpr};
+use crate::BasicAlgebraicExpr;
 
 pub trait DifferentiableFunction {
     fn diff(&self, params: Vec<SimpleExpr>) -> SimpleExpr;

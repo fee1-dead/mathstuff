@@ -1,7 +1,8 @@
 use std::fmt::{self, Write};
 
-use num::{Signed, One};
+use num::{One, Signed};
 
+use crate::constant::Constant;
 use crate::simplify::SimpleExpr;
 use crate::{BasicAlgebraicExpr, PrecedenceContext};
 
@@ -18,6 +19,16 @@ pub fn print_expr_to_string(x: &BasicAlgebraicExpr) -> String {
 }
 pub struct Printer<W: Write> {
     writer: W,
+}
+
+fn is_denominator(x: &BasicAlgebraicExpr) -> bool {
+    if let BasicAlgebraicExpr::Pow(x) = x
+    && let BasicAlgebraicExpr::Numeric(x) = &x.1
+    && x.is_negative() {
+        true
+    } else {
+        false
+    }
 }
 
 impl<W: Write> Printer<W> {
@@ -46,20 +57,71 @@ impl<W: Write> Printer<W> {
         self.writer.write_char(')')
     }
 
+    pub fn print_constant(&mut self, c: &Constant) -> fmt::Result {
+        if let Some(int) = c.as_integer() {
+            write!(self.writer, "{int}")
+        } else {
+            let rational = &**c;
+            let num = rational.numer();
+            let denom = rational.denom();
+            write!(self.writer, "frac({num}, {denom})")
+        }
+    }
+
     pub fn print_product(
         &mut self,
         exprs: &[BasicAlgebraicExpr],
         p: PrecedenceContext,
     ) -> fmt::Result {
-        self.maybe_enter_parens(|this| {
-            for (n, item) in exprs.iter().enumerate() {
-                if n != 0 {
-                    write!(this.writer, " dot.op ")?;
+        self.maybe_enter_parens(
+            |this| {
+                if exprs.iter().any(is_denominator) {
+                    write!(this.writer, "frac(")?;
+                    let mut denom = Printer::new_string();
+                    let mut num_empty = true;
+                    for exp in exprs {
+                        if is_denominator(exp) {
+                            if !denom.writer.is_empty() {
+                                denom.writer.push_str(" dot.op ");
+                            }
+
+                            let BasicAlgebraicExpr::Pow(x) = exp else {
+                                panic!("expected power")
+                            };
+
+                            denom.print_with_precedence(&x.0, PrecedenceContext::Product)?;
+
+                            // TODO detect (x)^(-y)
+                            if let BasicAlgebraicExpr::Numeric(x) = &x.1 {
+                                let abs = x.abs();
+                                if !abs.is_one() {
+                                    denom.writer.push_str("^(");
+                                    denom.print_constant(&abs)?;
+                                    denom.writer.push(')')
+                                }
+                            }
+                        } else {
+                            if !num_empty {
+                                this.writer.write_str(" dot.op ")?;
+                                num_empty = false;
+                            }
+                            this.print_with_precedence(exp, PrecedenceContext::Product)?;
+                        }
+                    }
+                    let denom = denom.into_inner();
+                    write!(this.writer, ",{denom})")?;
+                } else {
+                    for (n, item) in exprs.iter().enumerate() {
+                        if n != 0 {
+                            write!(this.writer, " dot.op ")?;
+                        }
+                        this.print_with_precedence(item, PrecedenceContext::Product)?;
+                    }
                 }
-                this.print_with_precedence(item, PrecedenceContext::Product)?;
-            }
-            Ok(())
-        }, PrecedenceContext::Product < p)
+                Ok(())
+            },
+            PrecedenceContext::Product < p,
+        )
     }
 
     pub fn print_with_precedence(
@@ -73,14 +135,8 @@ impl<W: Write> Printer<W> {
                 self.print_with_precedence(x, new_ctxt)?;
                 write!(self.writer, "!")?;
             }
-            BasicAlgebraicExpr::Numeric(x) if let Some(int) = x.as_integer() => {
-                write!(self.writer, "{int}")?;
-            }
             BasicAlgebraicExpr::Numeric(x) => {
-                let rational = &**x;
-                let num = rational.numer();
-                let denom = rational.denom();
-                write!(self.writer, "frac({num}, {denom})")?;
+                self.print_constant(x)?;
             }
             BasicAlgebraicExpr::Symbol(x) => {
                 self.writer.write_str(x)?;

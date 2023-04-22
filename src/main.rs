@@ -78,30 +78,44 @@ impl typst::World for MyWorld {
     }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let eq = parse_into_expression(&fs::read_to_string("./test.txt")?).unwrap();
-    let str = print_expr_to_string(&eq);
-    let world = MyWorld::new(format!(
-        r#"
-        #set page(width: auto, height: auto, margin: 5pt)
-        #show math.equation: set text(font: "New Computer Modern Math")
-        ${str}$
-    "#
-    ))?;
-    println!("debug uwu");
-    let input = typst::compile(&world).unwrap();
+fn write_image(w: &MyWorld, path: &str) -> Result<(), Box<dyn Error>> {
+    let input = typst::compile(w).unwrap();
     let pixmap = typst::export::render(
         &input.pages[0],
         10.0,
         Color::Rgba(RgbaColor::new(255, 255, 255, 255)),
     );
     image::write_buffer_with_format(
-        &mut File::create("./out.png")?,
+        &mut File::create(path)?,
         bytemuck::cast_slice(pixmap.pixels()),
         pixmap.width(),
         pixmap.height(),
         image::ColorType::Rgba8,
         image::ImageFormat::Png,
     )?;
+    Ok(())
+}
+
+const PREAMBLE: &str = r#"
+
+#set page(width: auto, height: auto, margin: 5pt)
+#show math.equation: set text(font: "New Computer Modern Math")
+
+"#;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let eq = parse_into_expression(&fs::read_to_string("./test.txt")?).unwrap();
+    let str = print_expr_to_string(&eq);
+    let mut world = MyWorld::new(format!("{PREAMBLE} ${str}$"))?;
+
+    write_image(&world, "./out.png")?;
+
+    let s = eq.simplify().unwrap();
+    let str = print_expr_to_string(s.as_inner());
+
+    world.set_source(format!("{PREAMBLE} ${str}$"));
+
+    write_image(&world, "./out_simplified.png")?;
+
     Ok(())
 }

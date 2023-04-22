@@ -184,3 +184,19 @@ pub(crate) fn simplify_power(base: SimpleExpr, exponent: SimpleExpr) -> ComputeR
         Ok(s(BasicAlgebraicExpr::Pow(Box::new((base.inner, exponent.inner)))))
     }
 }
+
+fn simplify_factorial(x: SimpleExpr) -> ComputeResult {
+    match &x.inner {
+        BasicAlgebraicExpr::Numeric(x) if let Some(x) = x.as_integer() && x <= &BigInt::from(10000) => {
+            let mut current = BigInt::one();
+            let mut product = BigInt::one();
+            while &current <= x {
+                product *= &current;
+                current += 1;
+            }
+
+            Ok(SimpleExpr::new_constant(product.into()))
+        }
+        _ => Ok(SimpleExpr::new(BasicAlgebraicExpr::Factorial(Box::new(x.inner)))),
+    }
+}

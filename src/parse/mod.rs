@@ -203,15 +203,22 @@ fn expression_parser() -> impl Parser<Token, BasicAlgebraicExpr, Error = Simple<
             .or(call)
             .or(symbol.map(|x| Expr::Symbol(x)));
 
-        let exp = atom.separated_by(just(Token::Pow)).at_least(1).map(|v| {
-            let mut i = v.into_iter().rev();
-            let mut exp = i.next().unwrap();
-            for base in i {
-                exp = BasicAlgebraicExpr::Pow(Box::new((base, exp)));
-            }
+        let factorial = atom
+            .then(just(Token::Factorial).repeated())
+            .foldl(|x, _| Expr::Factorial(Box::new(x)));
 
-            exp
-        });
+        let exp = factorial
+            .separated_by(just(Token::Pow))
+            .at_least(1)
+            .map(|v| {
+                let mut i = v.into_iter().rev();
+                let mut exp = i.next().unwrap();
+                for base in i {
+                    exp = BasicAlgebraicExpr::Pow(Box::new((base, exp)));
+                }
+
+                exp
+            });
 
         let unary = just(Token::Sub)
             .repeated()

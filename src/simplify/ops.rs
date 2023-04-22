@@ -349,7 +349,7 @@ impl BasicAlgebraicExpr {
             Pow(x) => super::simplify_power((*x).0.simplify()?, (*x).1.simplify()?)?,
             Sum(x) => self::Sum.simplify_entry(x)?,
             Product(x) => self::Product.simplify_entry(x)?,
-            Factorial(_) => todo!(),
+            Factorial(x) => super::simplify_factorial(x.simplify()?)?,
             Function(..) => todo!(),
         })
     }

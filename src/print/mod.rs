@@ -31,6 +31,29 @@ fn is_denominator(x: &BasicAlgebraicExpr) -> bool {
     }
 }
 
+fn can_combine_with_next(x: &BasicAlgebraicExpr) -> bool {
+    match x {
+        BasicAlgebraicExpr::Numeric(_)
+        | BasicAlgebraicExpr::Symbol(_)
+        | BasicAlgebraicExpr::Sum(_)
+        | BasicAlgebraicExpr::Pow(_)
+        | BasicAlgebraicExpr::Function(..) => true,
+        BasicAlgebraicExpr::Product(x) => x.last().map_or(true, can_combine_with_next),
+        BasicAlgebraicExpr::Factorial(_) => false,
+    }
+}
+
+fn can_combine_with_prev(x: &BasicAlgebraicExpr) -> bool {
+    match x {
+        BasicAlgebraicExpr::Product(x) => x.first().map_or(true, can_combine_with_prev),
+        BasicAlgebraicExpr::Pow(_)
+        | BasicAlgebraicExpr::Symbol(_)
+        | BasicAlgebraicExpr::Sum(_)
+        | BasicAlgebraicExpr::Function(..) => true,
+        BasicAlgebraicExpr::Factorial(_) | BasicAlgebraicExpr::Numeric(_) => false,
+    }
+}
+
 impl<W: Write> Printer<W> {
     pub fn print(&mut self, x: &BasicAlgebraicExpr) -> fmt::Result {
         self.print_with_precedence(x, PrecedenceContext::NoPrecedence)
@@ -77,17 +100,28 @@ impl<W: Write> Printer<W> {
             |this| {
                 if exprs.iter().any(is_denominator) {
                     write!(this.writer, "frac(")?;
+
                     let mut denom = Printer::new_string();
                     let mut num_empty = true;
+                    let mut num_prev_can_combine = false;
+                    let mut denom_prev_can_combine = false;
                     for exp in exprs {
                         if is_denominator(exp) {
-                            if !denom.writer.is_empty() {
-                                denom.writer.push_str(" dot.op ");
-                            }
-
                             let BasicAlgebraicExpr::Pow(x) = exp else {
                                 panic!("expected power")
                             };
+
+                            if !denom.writer.is_empty() {
+                                // TODO: if numeric power is not one, then we would print a power,
+                                // which means it would always be able to combine with previous.
+                                if denom_prev_can_combine && can_combine_with_prev(exp) {
+                                    denom.writer.push(' ');
+                                } else {
+                                    denom.writer.push_str(" dot.op ");
+                                }
+                            }
+
+                            denom_prev_can_combine = can_combine_with_next(&x.0);
 
                             denom.print_with_precedence(&x.0, PrecedenceContext::Product)?;
 
@@ -97,24 +131,37 @@ impl<W: Write> Printer<W> {
                                 if !abs.is_one() {
                                     denom.writer.push_str("^(");
                                     denom.print_constant(&abs)?;
-                                    denom.writer.push(')')
+                                    denom.writer.push(')');
+                                    denom_prev_can_combine = true;
                                 }
                             }
                         } else {
                             if !num_empty {
-                                this.writer.write_str(" dot.op ")?;
+                                if num_prev_can_combine && can_combine_with_prev(exp) {
+                                    this.writer.write_char(' ')?;
+                                } else {
+                                    this.writer.write_str(" dot.op ")?;
+                                }
+
                                 num_empty = false;
                             }
+                            num_prev_can_combine = can_combine_with_next(exp);
                             this.print_with_precedence(exp, PrecedenceContext::Product)?;
                         }
                     }
                     let denom = denom.into_inner();
                     write!(this.writer, ",{denom})")?;
                 } else {
+                    let mut prev_can_combine = false;
                     for (n, item) in exprs.iter().enumerate() {
                         if n != 0 {
-                            write!(this.writer, " dot.op ")?;
+                            if prev_can_combine && can_combine_with_prev(item) {
+                                this.writer.write_char(' ')?;
+                            } else {
+                                this.writer.write_str(" dot.op ")?;
+                            }
                         }
+                        prev_can_combine = can_combine_with_next(item);
                         this.print_with_precedence(item, PrecedenceContext::Product)?;
                     }
                 }
@@ -142,10 +189,11 @@ impl<W: Write> Printer<W> {
                 self.writer.write_str(x)?;
             }
             BasicAlgebraicExpr::Sum(items) => {
-                self.maybe_enter_parens(|this| {
-                    for (n, item) in items.iter().enumerate() {
-                        if n != 0 {
-                            if let BasicAlgebraicExpr::Product(x) = item
+                self.maybe_enter_parens(
+                    |this| {
+                        for (n, item) in items.iter().enumerate() {
+                            if n != 0 {
+                                if let BasicAlgebraicExpr::Product(x) = item
                                 && let [BasicAlgebraicExpr::Numeric(n), rest @ ..] = &**x
                                 && n.is_negative()
                             {
@@ -158,11 +206,13 @@ impl<W: Write> Printer<W> {
                             } else {
                                 write!(this.writer, "+")?;
                             }
+                            }
+                            this.print_with_precedence(item, new_ctxt)?;
                         }
-                        this.print_with_precedence(item, new_ctxt)?;
-                    }
-                    Ok(())
-                }, new_ctxt < p)?;
+                        Ok(())
+                    },
+                    new_ctxt < p,
+                )?;
             }
             BasicAlgebraicExpr::Product(items) => {
                 self.print_product(items, p)?;
@@ -170,9 +220,11 @@ impl<W: Write> Printer<W> {
             BasicAlgebraicExpr::Pow(x) => {
                 let (base, exp) = &**x;
                 let base_ctxt = base.precedence_ctxt();
-                self.maybe_enter_parens(|this| {
-                    this.print_with_precedence(base, PrecedenceContext::NoPrecedence)
-                }, base_ctxt != PrecedenceContext::NoPrecedence && base_ctxt < PrecedenceContext::Pow)?;
+                self.maybe_enter_parens(
+                    |this| this.print_with_precedence(base, PrecedenceContext::NoPrecedence),
+                    base_ctxt != PrecedenceContext::NoPrecedence
+                        && base_ctxt < PrecedenceContext::Pow,
+                )?;
                 self.writer.write_char('^')?;
                 self.enter_parens(|this| {
                     this.print_with_precedence(exp, PrecedenceContext::NoPrecedence)

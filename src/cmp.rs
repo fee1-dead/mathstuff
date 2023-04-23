@@ -32,13 +32,13 @@ impl Ord for BasicAlgebraicExpr {
             (_, Numeric(_)) => Ordering::Greater,
             (Product(a), Product(b)) => cmp_list(a, b),
             (Product(a), b) => cmp_list(a, slice::from_ref(b)),
-            (a, Product(b)) => cmp_list(slice::from_ref(a), b).reverse(),
-            (Pow(a), Pow(b)) => a.cmp(b).reverse(),
+            (a, Product(b)) => cmp_list(slice::from_ref(a), b),
+            (Pow(a), Pow(b)) => a.cmp(b),
             (Pow(a), b) => a.cmp(&Box::new((b.clone(), 1.into()))),
             (a, Pow(b)) => (&(a.clone(), 1.into())).cmp(b),
             (Sum(a), Sum(b)) => cmp_list(a, b),
             (Sum(a), b) => cmp_list(a, slice::from_ref(b)),
-            (a, Sum(b)) => cmp_list(slice::from_ref(a), b).reverse(),
+            (a, Sum(b)) => cmp_list(slice::from_ref(a), b),
             (Factorial(a), Factorial(b)) => a.cmp(b),
             (Factorial(a), b) => {
                 if &**a == b {
@@ -54,7 +54,7 @@ impl Ord for BasicAlgebraicExpr {
                     a.cmp(&**b)
                 }
             }
-            // NOTE that arguments are compared lexicographically instead of reversed as in cmp_list
+            // N.B. arguments are compared lexicographically instead of reversed as in cmp_list
             (Function(name1, args1), Function(name2, args2)) => {
                 if name1 == name2 {
                     args1.cmp(args2)

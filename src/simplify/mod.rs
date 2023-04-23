@@ -188,6 +188,7 @@ pub(crate) fn simplify_power(base: SimpleExpr, exponent: SimpleExpr) -> ComputeR
 fn simplify_factorial(x: SimpleExpr) -> ComputeResult {
     match &x.inner {
         BasicAlgebraicExpr::Numeric(x) if let Some(x) = x.as_integer() && x <= &BigInt::from(10000) => {
+            // TODO: how might we configure this limit?
             let mut current = BigInt::one();
             let mut product = BigInt::one();
             while &current <= x {

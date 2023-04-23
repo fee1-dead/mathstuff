@@ -105,12 +105,14 @@ const PREAMBLE: &str = r#"
 
 fn main() -> Result<(), Box<dyn Error>> {
     let eq = parse_into_expression(&fs::read_to_string("./test.txt")?).unwrap();
+    dbg!(&eq);
     let str = print_expr_to_string(&eq);
     let mut world = MyWorld::new(format!("{PREAMBLE} ${str}$"))?;
 
     write_image(&world, "./out.png")?;
 
     let s = eq.simplify().unwrap();
+    dbg!(s.as_inner());
     let str = print_expr_to_string(s.as_inner());
 
     world.set_source(format!("{PREAMBLE} ${str}$"));

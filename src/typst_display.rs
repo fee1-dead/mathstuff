@@ -33,8 +33,6 @@ impl MyWorld {
             .flatten()
             .collect::<Vec<_>>();
 
-        dbg!(&fonts);
-
         let book = FontBook::from_fonts(fonts.iter());
         Ok(Self {
             library: Prehashed::new(typst_library::build()),

@@ -1,7 +1,10 @@
 #![feature(let_chains, if_let_guard)]
 
+use std::error::Error;
+
 use constant::Constant;
 
+use num::One;
 use simplify::SimpleExpr;
 
 mod cmp;
@@ -9,6 +12,7 @@ pub mod constant;
 pub mod diff;
 mod helpers;
 pub mod parse;
+pub mod polynomials;
 pub mod print;
 mod rational_expressions;
 pub mod simplify;
@@ -52,6 +56,16 @@ impl BasicAlgebraicExpr {
             Self::Factorial(_) | Self::Function(_, _) => FunctionOrFactorial,
         }
     }
+
+    pub fn assert_simple(self) -> SimpleExpr {
+        SimpleExpr::assert(self)
+    }
+}
+
+impl One for BasicAlgebraicExpr {
+    fn one() -> Self {
+        BasicAlgebraicExpr::Numeric(Constant::one())
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -67,6 +81,11 @@ pub enum PrecedenceContext {
     /// These operations are performed to their immediate left, so if their left
     /// is a compound expression we certainly want to wrap them in parenthesis.
     FunctionOrFactorial,
+}
+
+pub fn parse(x: &str) -> Result<BasicAlgebraicExpr, Box<dyn Error>> {
+    let expr = parse::parse_into_expression(x).map_err(|_| "failed to parse expr")?;
+    Ok(expr)
 }
 
 pub fn parse_and_simplify(x: &str) -> Result<ComputeResult, chumsky::error::Simple<parse::Token>> {

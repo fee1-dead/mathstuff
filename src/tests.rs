@@ -1,3 +1,4 @@
+// TODO I don't like this we should probably delete the whole thing
 use std::ops::{Add, Mul};
 
 use tracing::metadata::LevelFilter;
@@ -28,7 +29,7 @@ impl TestExpr {
     }
 
     pub fn mk_simple(b: BasicAlgebraicExpr) -> Self {
-        Self::Simplified(SimpleExpr::assume_simplified(b))
+        Self::Simplified(SimpleExpr::assert(b))
     }
 }
 
@@ -40,7 +41,7 @@ impl PartialEq for TestExpr {
 
 fn mk_expr(is_simple: bool) -> impl Fn(BasicAlgebraicExpr) -> TestExpr {
     if is_simple {
-        |a| TestExpr::Simplified(SimpleExpr::assume_simplified(a))
+        |a| TestExpr::Simplified(SimpleExpr::assert(a))
     } else {
         |a| TestExpr::Basic(a)
     }
@@ -197,7 +198,7 @@ pub fn simplify_power() {
     assert_eq!(0, simplify(n(0) ^ n(2)));
     // 0^n = 0^n
     assert_eq!(
-        SimpleExpr::assume_simplified(BasicAlgebraicExpr::Pow(Box::new((n(0), opaque())))),
+        SimpleExpr::assert(BasicAlgebraicExpr::Pow(Box::new((n(0), opaque())))),
         simplify(n(0) ^ opaque())
     );
 }

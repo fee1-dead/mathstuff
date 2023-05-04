@@ -161,18 +161,36 @@ fn expression_parser() -> impl Parser<Token, BasicAlgebraicExpr, Error = Simple<
     }
 
     fn add(a: Expr, b: Expr) -> Expr {
+        if let Expr::Sum(mut vals) = a {
+            vals.push(b);
+            return Expr::Sum(vals);
+        }
         Expr::Sum(vec![a, b])
     }
     fn sub(a: Expr, b: Expr) -> Expr {
-        Expr::Sum(vec![a, Expr::Product(vec![negative_one(), b])])
+        let rhs = Expr::Product(vec![negative_one(), b]);
+        if let Expr::Sum(mut vals) = a {
+            vals.push(rhs);
+            return Expr::Sum(vals);
+        }
+        Expr::Sum(vec![a, rhs])
     }
 
     fn mul(a: Expr, b: Expr) -> Expr {
+        if let Expr::Product(mut vals) = a {
+            vals.push(b);
+            return Expr::Product(vals);
+        }
         Expr::Product(vec![a, b])
     }
 
     fn div(a: Expr, b: Expr) -> Expr {
-        Expr::Product(vec![a, Expr::Pow(Box::new((b, negative_one())))])
+        let rhs = Expr::Pow(Box::new((b, negative_one())));
+        if let Expr::Product(mut vals) = a {
+            vals.push(rhs);
+            return Expr::Product(vals);
+        }
+        Expr::Product(vec![a, rhs])
     }
 
     let expr = recursive(|expr| {
@@ -261,3 +279,6 @@ pub fn parse_into_expression(s: &str) -> Result<BasicAlgebraicExpr, Simple<Token
         err
     })
 }
+
+#[cfg(test)]
+mod tests;

@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use num::{BigInt, One, Signed, Zero};
 
 use crate::rational_expressions::RationalExpr;
@@ -30,7 +32,7 @@ impl SimpleExpr {
         Self::new(BasicAlgebraicExpr::Symbol(s))
     }
 
-    pub const fn assume_simplified(x: BasicAlgebraicExpr) -> Self {
+    pub const fn assert(x: BasicAlgebraicExpr) -> Self {
         // TODO validate simplified status
         Self::new(x)
     }
@@ -101,6 +103,13 @@ impl SimpleExpr {
     }
 }
 
+impl Deref for SimpleExpr {
+    type Target = BasicAlgebraicExpr;
+    fn deref(&self) -> &Self::Target {
+        self.as_inner()
+    }
+}
+
 impl From<Constant> for SimpleExpr {
     fn from(c: Constant) -> Self {
         Self::new_constant(c)
@@ -113,6 +122,7 @@ impl From<i32> for SimpleExpr {
     }
 }
 
+// private impl
 impl SimpleExpr {
     #[cfg(feature = "evcxr")]
     pub fn evcxr_display(&self) {

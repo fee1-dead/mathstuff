@@ -66,7 +66,7 @@ impl Differentiator {
                 // split the product into two parts, factors that references x, and factors that do not.
                 let (refs, mut norefs): (Vec<_>, Vec<_>) = x
                     .into_iter()
-                    .map(SimpleExpr::assume_simplified)
+                    .map(SimpleExpr::assert)
                     .into_iter()
                     .partition(|x| references(x.as_inner(), wrt));
 
@@ -106,7 +106,7 @@ impl Differentiator {
                     return Err(DifferentiationError::PowerReferencesVar);
                 }
 
-                let [base, exp] = [base, exp].map(SimpleExpr::assume_simplified);
+                let [base, exp] = [base, exp].map(SimpleExpr::assert);
 
                 debug!(?base, ?exp);
 
@@ -124,7 +124,7 @@ impl Differentiator {
             }
             Sum(x) => ops::Sum.simplify(
                 x.into_iter()
-                    .map(SimpleExpr::assume_simplified)
+                    .map(SimpleExpr::assert)
                     .map(|x| self.differentiate(x, wrt))
                     .collect::<Result<_, DifferentiationError>>()?,
             )?,
@@ -132,14 +132,14 @@ impl Differentiator {
                 if references(&x, wrt) {
                     return Err(DifferentiationError::FactorialReferencesVar);
                 } else {
-                    SimpleExpr::assume_simplified(Factorial(x))
+                    SimpleExpr::assert(Factorial(x))
                 }
             }
             Function(x, args) => {
                 if let Some(f) = self.functions.get(&x) {
                     let r: Result<[_; 1], _> = args.try_into();
                     if let Ok([arg]) = r {
-                        let arg = SimpleExpr::assume_simplified(arg);
+                        let arg = SimpleExpr::assert(arg);
                         let a2 = arg.clone();
                         return Ok(ops::Product
                             .simplify(vec![self.differentiate(arg, wrt)?, f.diff(vec![a2])])?);

@@ -124,9 +124,9 @@ impl From<i32> for SimpleExpr {
 
 // private impl
 impl SimpleExpr {
-    #[cfg(feature = "evcxr")]
+    #[cfg(feature = "typst_display")]
     pub fn evcxr_display(&self) {
-        todo!()
+        crate::typst_display::evcxr_display(self)
     }
 
     const fn new(inner: BasicAlgebraicExpr) -> Self {

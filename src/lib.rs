@@ -68,6 +68,7 @@ impl One for BasicAlgebraicExpr {
     }
 }
 
+/// An enum representing operator precedence. Useful for printing stuff.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PrecedenceContext {
     /// Has no precedence. (wrapped in parens or function args)

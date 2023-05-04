@@ -126,14 +126,7 @@ impl From<i32> for SimpleExpr {
 impl SimpleExpr {
     #[cfg(feature = "evcxr")]
     pub fn evcxr_display(&self) {
-        match katex::render(&crate::print::to_latex(&self)) {
-            Ok(html) => {
-                println!("EVCXR_BEGIN_CONTENT text/html\n{html}\nEVCXR_END_CONTENT");
-            }
-            Err(e) => {
-                println!("EVCXR_BEGIN_CONTENT text/html\n<p>Failed to render via katex: {e:?}</p>\nEVCXR_END_CONTENT");
-            }
-        }
+        todo!()
     }
 
     const fn new(inner: BasicAlgebraicExpr) -> Self {

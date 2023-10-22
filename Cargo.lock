@@ -923,6 +923,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "mathstuff-polynomials"
+version = "0.1.0"
+dependencies = [
+ "mathstuff-types",
+ "num",
+]
+
+[[package]]
+name = "mathstuff-types"
+version = "0.1.0"
+dependencies = [
+ "num",
+]
+
+[[package]]
 name = "mathstuff-typst"
 version = "0.1.0"
 dependencies = [

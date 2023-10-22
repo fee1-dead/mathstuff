@@ -1,5 +1,5 @@
 [workspace]
-members = ["mathstuff-typst", "mathstuff-typst-render-test"]
+members = ["mathstuff-typst", "mathstuff-typst-render-test", "mathstuff-polynomials", "mathstuff-types"]
 
 [workspace.package]
 edition = "2021"

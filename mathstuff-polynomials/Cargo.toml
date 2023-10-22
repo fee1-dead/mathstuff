@@ -1,0 +1,10 @@
+[package]
+name = "mathstuff-polynomials"
+version = "0.1.0"
+edition.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+num = { version = "0.4.1", features = ["num-bigint"] }
+mathstuff-types = { path = "../mathstuff-types" }

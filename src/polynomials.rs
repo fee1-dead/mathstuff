@@ -143,7 +143,7 @@ pub fn coeff_var_monomial(
                 Err(Undefined)
             }
         }
-        BasicAlgebraicExpr::Product(values) => {
+        BasicAlgebraicExpr::Product(_values) => {
             // let mut ret = Vec::new();
             todo!()
         }
@@ -168,7 +168,7 @@ pub fn collect_terms(
         return Ok(u);
     }
 
-    let BasicAlgebraicExpr::Sum(terms) = u else {
+    let BasicAlgebraicExpr::Sum(_terms) = u else {
         coeff_var_monomial(u.clone().assert_simple(), vars)?;
 
         return Ok(u);

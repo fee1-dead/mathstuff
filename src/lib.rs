@@ -17,9 +17,6 @@ pub mod print;
 mod rational_expressions;
 pub mod simplify;
 
-#[cfg(feature = "typst_display")]
-mod typst_display;
-
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub enum Constants {
     Pi,
@@ -31,15 +28,9 @@ pub struct Undefined;
 
 pub type ComputeResult<T = SimpleExpr> = Result<T, Undefined>;
 
-/// Precedence (highest to lowest):
-/// 1. Function/Factorial
-/// 2. Exponentiation
-/// 3. Product
-/// 4. Sum
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub enum BasicAlgebraicExpr {
     Numeric(Constant),
-    // Const(Constants),
     Symbol(String),
     Product(Vec<BasicAlgebraicExpr>),
     Sum(Vec<BasicAlgebraicExpr>),
@@ -49,11 +40,6 @@ pub enum BasicAlgebraicExpr {
 }
 
 impl BasicAlgebraicExpr {
-    #[cfg(feature = "typst_display")]
-    pub fn evcxr_display(&self) {
-        crate::typst_display::evcxr_display(self)
-    }
-
     pub fn precedence_ctxt(&self) -> PrecedenceContext {
         use PrecedenceContext::*;
         match self {

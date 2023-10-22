@@ -1,19 +1,15 @@
 use std::error::Error;
-use std::io::Cursor;
+use std::io::{Write, Seek};
+use std::io;
 use std::path::Path;
-use std::{fs, io};
 
-use base64::Engine;
 use comemo::Prehashed;
+use palette::rgb::Rgba;
 use typst::diag::{FileError, FileResult};
-use typst::eval::Library;
+use typst::eval::{Library, Tracer, Bytes};
 use typst::font::{Font, FontBook};
-use typst::geom::{Color, RgbaColor};
-use typst::syntax::{Source, SourceId};
-use typst::util::Buffer;
-
-use crate::BasicAlgebraicExpr;
-use crate::print::print_expr_to_string;
+use typst::geom::Color;
+use typst::syntax::{Source, FileId, VirtualPath};
 
 pub struct MyWorld {
     library: Prehashed<Library>,
@@ -26,24 +22,19 @@ impl MyWorld {
     pub fn new(src: String) -> io::Result<Self> {
         //let fonts_list = Command::new("fc-list").arg("-f").arg("%{file}\n").output()?;
         //let s = String::from_utf8_lossy(&fonts_list.stdout);
-        let s = "./font/NewCMMath-Regular.otf";
-        let fonts = s
-            .lines()
-            .flat_map(|x| fs::read(x).map(|data| Font::iter(data.into())).ok())
-            .flatten()
-            .collect::<Vec<_>>();
-
-        let book = FontBook::from_fonts(fonts.iter());
+        let data = include_bytes!("../font/NewCMMath-Regular.otf");
+        let fonts =  Font::iter(data.as_slice().into()).collect::<Vec<_>>();
+        let book = FontBook::from_fonts(&fonts);
         Ok(Self {
             library: Prehashed::new(typst_library::build()),
             fonts,
             book: Prehashed::new(book),
-            main: Source::new(SourceId::from_u16(0), Path::new("input"), src),
+            main: Source::new(FileId::new(None, VirtualPath::new("/input")), src),
         })
     }
 
     pub fn set_source(&mut self, src: String) {
-        self.main = Source::new(SourceId::from_u16(0), Path::new("input"), src);
+        self.main = Source::new(FileId::new(None, VirtualPath::new("/input")), src);
     }
 }
 
@@ -60,42 +51,42 @@ impl typst::World for MyWorld {
         &self.book
     }
 
-    fn resolve(&self, path: &Path) -> FileResult<SourceId> {
-        Err(FileError::NotFound(path.into()))
+
+    fn file(&self, path: FileId) -> FileResult<Bytes> {
+        Err(FileError::NotFound(path.vpath().as_rooted_path().into()))
     }
 
-    fn file(&self, path: &Path) -> FileResult<Buffer> {
-        Err(FileError::NotFound(path.into()))
+    fn source(&self, id: FileId) -> FileResult<Source> {
+        assert_eq!(Path::new("/input"), id.vpath().as_rooted_path());
+        Ok(self.main.clone())
     }
 
-    fn source(&self, id: SourceId) -> &Source {
-        assert_eq!(0, id.into_u16());
-        &self.main
+    fn main(&self) -> Source {
+        self.main.clone()
     }
 
-    fn main(&self) -> &Source {
-        &self.main
+    fn today(&self, _offset: Option<i64>) -> Option<typst::eval::Datetime>  {
+        None
     }
 }
 
-pub fn write_image(w: &MyWorld) -> Result<Vec<u8>, Box<dyn Error>> {
-    let input = typst::compile(w).unwrap();
+pub fn write_image(w: &MyWorld, x: &mut (impl Write + Seek)) -> Result<(), Box<dyn Error>> {
+    let mut tracer = Tracer::new();
+    let input = typst::compile(w, &mut tracer).unwrap();
     let pixmap = typst::export::render(
         &input.pages[0],
         10.0,
-        Color::Rgba(RgbaColor::new(255, 255, 255, 255)),
+        Color::Rgba(Rgba::new(1., 1., 1., 1.)),
     );
-    let buf = vec![];
-    let mut cursor = Cursor::new(buf);
     image::write_buffer_with_format(
-        &mut cursor,
+        x,
         bytemuck::cast_slice(pixmap.pixels()),
         pixmap.width(),
         pixmap.height(),
         image::ColorType::Rgba8,
         image::ImageFormat::Png,
     )?;
-    Ok(cursor.into_inner())
+    Ok(())
 }
 
 pub const PREAMBLE: &str = r#"
@@ -105,11 +96,15 @@ pub const PREAMBLE: &str = r#"
 
 "#;
 
+/* 
 pub fn evcxr_display(exp: &BasicAlgebraicExpr) {
     let str = print_expr_to_string(&exp);
     let world = MyWorld::new(format!("{PREAMBLE} ${str}$")).unwrap();
 
-    let bytes = write_image(&world).unwrap();
+    let mut bytes = Cursor::new(Vec::new());
+    write_image(&world, &mut bytes);
 
+    let bytes = bytes.into_inner();
     println!("EVCXR_BEGIN_CONTENT image/png\n{}\nEVCXR_END_CONTENT", base64::prelude::BASE64_STANDARD.encode(&bytes));
 }
+*/

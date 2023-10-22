@@ -232,13 +232,13 @@ impl Operation for Product {
     // TODO make these collects less painful (maybe just all use BAEs instead)
     fn try_extract_list(self, x: SimpleExpr) -> Result<Vec<SimpleExpr>, SimpleExpr> {
         match x.inner {
-            BasicAlgebraicExpr::Product(x) => Ok(x.into_iter().map(SimpleExpr::new).collect()),
+            BasicAlgebraicExpr::Product(x) => Ok(x.into_iter().map(SimpleExpr::assert).collect()),
             _ => Err(x),
         }
     }
 
     fn make_list(self, x: Vec<SimpleExpr>) -> SimpleExpr {
-        SimpleExpr::new(BasicAlgebraicExpr::Product(
+        SimpleExpr::assert(BasicAlgebraicExpr::Product(
             x.into_iter().map(|x| x.inner).collect(),
         ))
     }
@@ -259,11 +259,10 @@ impl Operation for Product {
                     b.exponent().expect("base() is not None"),
                 ])?;
                 let result = super::simplify_power(base.clone(), exponent)?;
-                Some(if let BasicAlgebraicExpr::Numeric(c) = &result.inner && c.is_one() {
-                smallvec![]
-            } else {
-                smallvec![result]
-            })
+                Some(match result.inner {
+                    BasicAlgebraicExpr::Numeric(c) if c.is_one() => smallvec![],
+                    _ => smallvec![result],
+                })
             } else {
                 None
             },
@@ -291,12 +290,12 @@ impl Operation for Sum {
     fn try_extract_list(self, x: SimpleExpr) -> Result<Vec<SimpleExpr>, SimpleExpr> {
         match x.inner {
             // TODO maybe use bytemuck
-            BasicAlgebraicExpr::Sum(x) => Ok(x.into_iter().map(SimpleExpr::new).collect()),
+            BasicAlgebraicExpr::Sum(x) => Ok(x.into_iter().map(SimpleExpr::assert).collect()),
             _ => Err(x),
         }
     }
     fn make_list(self, x: Vec<SimpleExpr>) -> SimpleExpr {
-        SimpleExpr::new(BasicAlgebraicExpr::Sum(
+        SimpleExpr::assert(BasicAlgebraicExpr::Sum(
             x.into_iter().map(|x| x.inner).collect(),
         ))
     }

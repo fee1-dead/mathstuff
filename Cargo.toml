@@ -1,27 +1,32 @@
+[workspace]
+members = ["mathstuff-typst", "mathstuff-typst-render-test"]
+
+[workspace.package]
+edition = "2021"
+
+[workspace.dependencies]
+bytemuck = "1.14.0"
+
 [package]
 name = "mathstuff"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-base64 = { version = "0.21.0", optional = true }
-bytemuck = "1.13.1"
+bytemuck.workspace = true
 chumsky = "0.9.2"
-comemo = "0.2.2"
 fxhash = "0.2.1"
-image = "0.24.6"
 num = "0.4.0"
 smallvec = "1.10.0"
 tracing = "0.1.37"
-typst = { git = "https://github.com/typst/typst", optional = true }
-typst-library = { git = "https://github.com/typst/typst", optional = true }
+
 
 [dev-dependencies]
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 tracing-tree = "0.2.3"
 
 [features]
-default = ["typst_display"]
-typst_display = ["typst", "typst-library", "base64"]
+# default = ["typst_display"]
+# typst_display = ["typst", "typst-library", "base64"]

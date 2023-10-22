@@ -10,13 +10,18 @@ use self::ops::{Operation, Product};
 pub(crate) mod ops;
 
 fn s(x: BasicAlgebraicExpr) -> SimpleExpr {
-    SimpleExpr::new(x)
+    SimpleExpr { inner: x }
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash)]
 #[repr(transparent)]
 pub struct SimpleExpr {
     inner: BasicAlgebraicExpr,
+}
+
+fn is_simple(_x: &BasicAlgebraicExpr) -> bool {
+    // TODO
+    true
 }
 
 impl SimpleExpr {
@@ -29,12 +34,17 @@ impl SimpleExpr {
 
     #[inline]
     pub const fn new_symbol(s: String) -> Self {
-        Self::new(BasicAlgebraicExpr::Symbol(s))
+        Self { inner: BasicAlgebraicExpr::Symbol(s) }
     }
 
-    pub const fn assert(x: BasicAlgebraicExpr) -> Self {
-        // TODO validate simplified status
-        Self::new(x)
+    pub fn assert(x: BasicAlgebraicExpr) -> Self {
+        assert!(is_simple(&x));
+        Self { inner: x }
+    }
+
+    pub fn assert_ref(x: &BasicAlgebraicExpr) -> &Self {
+        assert!(is_simple(x));
+        Self::from_ref(x)
     }
 
     pub fn is_constant(&self) -> bool {
@@ -96,7 +106,7 @@ impl SimpleExpr {
 
     pub fn exponent(&self) -> Option<SimpleExpr> {
         Some(match &self.inner {
-            BasicAlgebraicExpr::Pow(x) => Self::new(x.1.clone()),
+            BasicAlgebraicExpr::Pow(x) => Self::assert(x.1.clone()),
             BasicAlgebraicExpr::Numeric(_) => return None,
             _ => SimpleExpr::new_constant(1.into()),
         })
@@ -124,15 +134,6 @@ impl From<i32> for SimpleExpr {
 
 // private impl
 impl SimpleExpr {
-    #[cfg(feature = "typst_display")]
-    pub fn evcxr_display(&self) {
-        crate::typst_display::evcxr_display(self)
-    }
-
-    const fn new(inner: BasicAlgebraicExpr) -> Self {
-        Self { inner }
-    }
-
     fn from_ref(x: &BasicAlgebraicExpr) -> &Self {
         let ptr = <*const BasicAlgebraicExpr>::from(x).cast::<Self>();
 
@@ -201,6 +202,6 @@ fn simplify_factorial(x: SimpleExpr) -> ComputeResult {
 
             Ok(SimpleExpr::new_constant(product.into()))
         }
-        _ => Ok(SimpleExpr::new(BasicAlgebraicExpr::Factorial(Box::new(x.inner)))),
+        _ => Ok(SimpleExpr::assert(BasicAlgebraicExpr::Factorial(Box::new(x.inner)))),
     }
 }
